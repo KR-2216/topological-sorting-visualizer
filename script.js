@@ -69,18 +69,33 @@ function setAlgorithm(algo) {
 }
 
 function setInputMode(mode) {
-    inputMode = mode;
+    if (mode === inputMode) return; // Do nothing if the mode is already active
+
+    const graphInput = document.getElementById('graphInput');
+    let currentGraph;
+    try {
+        // Parse the current input based on the *old* mode
+        currentGraph = parseGraph(graphInput.value);
+    } catch (e) {
+        console.error("Error parsing graph for conversion:", e);
+        // Don't switch if current input is invalid
+        return;
+    }
+    
+    inputMode = mode; // Set the new mode
+    
     document.getElementById('listBtn').classList.toggle('active', mode === 'list');
     document.getElementById('matrixBtn').classList.toggle('active', mode === 'matrix');
-    const graphInput = document.getElementById('graphInput');
+
     if (mode === 'list') {
         graphInput.placeholder = "0: 1,2\n1: 3\n2: 3\n3: 4\n4:";
-        graphInput.value = "0: 1,2\n1: 3\n2: 3\n3: 4\n4:";
+        graphInput.value = graphToListString(currentGraph);
     } else {
         graphInput.placeholder = "  0 1 2 3 4\n0 0 1 1 0 0\n1 0 0 0 1 0\n2 0 0 0 1 0\n3 0 0 0 0 1\n4 0 0 0 0 0";
-        graphInput.value = "  0 1 2 3 4\n0 0 1 1 0 0\n1 0 0 0 1 0\n2 0 0 0 1 0\n3 0 0 0 0 1\n4 0 0 0 0 0";
+        graphInput.value = graphToMatrixString(currentGraph);
     }
 }
+
 
 function parseGraph(input) {
     if (inputMode === 'list') return parseAdjacencyList(input);
@@ -109,14 +124,15 @@ function parseAdjacencyList(input) {
 
 function parseAdjacencyMatrix(input) {
     const lines = input.trim().split('\n').map(l => l.trim()).filter(Boolean);
-    if (lines.length < 2) throw new Error('Invalid matrix format.');
+    if (lines.length < 1) return {}; // Handle empty input
     const nodes = lines[0].split(/\s+/).filter(Boolean);
     const g = {};
     nodes.forEach(node => g[node] = []);
     for (let i = 1; i < lines.length; i++) {
         const parts = lines[i].split(/\s+/).filter(Boolean);
-        if (parts.length < 2) continue;
+        if (parts.length < 1) continue;
         const fromNode = parts[0];
+         if (!nodes.includes(fromNode)) continue; // Ensure the row header is a valid node
         const row = parts.slice(1);
         for (let j = 0; j < row.length && j < nodes.length; j++) {
             if (row[j] === '1') g[fromNode].push(nodes[j]);
@@ -124,6 +140,29 @@ function parseAdjacencyMatrix(input) {
     }
     return g;
 }
+
+function graphToListString(graph) {
+    const sortedNodes = Object.keys(graph).sort((a, b) => a - b);
+    return sortedNodes.map(node => {
+        const neighbors = graph[node] ? graph[node].join(', ') : '';
+        return `${node}: ${neighbors}`;
+    }).join('\n');
+}
+
+function graphToMatrixString(graph) {
+    const nodes = Object.keys(graph).sort((a, b) => a - b);
+    if (nodes.length === 0) return '';
+
+    const header = '  ' + nodes.join(' ');
+    const matrix = nodes.map(fromNode => {
+        const row = nodes.map(toNode => {
+            return graph[fromNode] && graph[fromNode].includes(toNode) ? '1' : '0';
+        }).join(' ');
+        return `${fromNode} ${row}`;
+    });
+    return `${header}\n${matrix.join('\n')}`;
+}
+
 
 function generateDFSSteps(graph) {
     const visited = new Set();
@@ -476,7 +515,7 @@ function generateRandomGraph() {
     const graphInput = document.getElementById('graphInput');
 
     if (numNodes <= 0) return;
-    const nodes = Array.from({ length: numNodes }, (_, i) => i);
+    const nodes = Array.from({ length: numNodes }, (_, i) => String(i));
     const edges = new Set();
     const adj = {};
     nodes.forEach(node => adj[node] = []);
@@ -486,11 +525,17 @@ function generateRandomGraph() {
     let attempts = 0;
 
     while (edgeCount < numEdges && edgeCount < maxEdges && attempts < numEdges * 5) {
-        let u = Math.floor(Math.random() * numNodes);
-        let v = Math.floor(Math.random() * numNodes);
-        if (u >= v) { attempts++; continue; }
+        let uIndex = Math.floor(Math.random() * numNodes);
+        let vIndex = Math.floor(Math.random() * numNodes);
+        if (uIndex >= vIndex) { // Ensure u < v to create a DAG
+            attempts++;
+            continue;
+        }
 
+        const u = nodes[uIndex];
+        const v = nodes[vIndex];
         const edgeKey = `${u}-${v}`;
+
         if (!edges.has(edgeKey)) {
             edges.add(edgeKey);
             adj[u].push(v);
@@ -498,13 +543,17 @@ function generateRandomGraph() {
         }
         attempts++;
     }
+    
+    // Update the global graph object
+    graph = adj;
+    
+    // Set the input mode to list and update the textarea
+    inputMode = 'list';
+    document.getElementById('listBtn').classList.add('active');
+    document.getElementById('matrixBtn').classList.remove('active');
+    graphInput.value = graphToListString(graph);
 
-    let adjListString = Object.entries(adj).map(([node, neighbors]) => `${node}: ${neighbors.join(',')}`).join('\n');
-    setInputMode('list');
-    graphInput.value = adjListString;
+    // Reset and draw the new graph
     resetVisualization();
-    try {
-        graph = parseGraph(adjListString);
-        drawGraph({ states: {} });
-    } catch (e) { console.error("Error drawing generated graph:", e); }
+    drawGraph({ states: {} });
 }
