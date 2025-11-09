@@ -9,15 +9,15 @@
 <body>
     <div class="container">
         <div class="header-nav">
-            <h1 id="main-title">🔄 Topological Sorting Visualizer</h1>
+            <h1 id="main-title">🧠 Topological Sorting Theory</h1>
             <div class="nav-toggle-group">
-                <button class="toggle-btn" id="theory-btn" onclick="showView('theory')">Theory</button>
-                <button class="toggle-btn active" id="visualizer-btn" onclick="showView('visualizer')">Visualizer</button>
+                <button class="toggle-btn active" id="theory-btn" onclick="showView('theory')">Theory</button>
+                <button class="toggle-btn" id="visualizer-btn" onclick="showView('visualizer')">Visualizer</button>
             </div>
         </div>
 
         <!-- Visualizer View -->
-        <div id="visualizer-view">
+        <div id="visualizer-view" style="display: none;">
             <p class="subtitle">Animated step-by-step visualization of DFS and BFS topological sorting</p>
 
             <div class="controls">
@@ -53,7 +53,7 @@
                     </div>
                     <label style="margin-top: 15px;">Animation Speed/Step</label>
                     <div class="speed-control">
-                        <input type="range" id="speedSlider" min="100" max="2000" value="1300" step="100">
+                        <input type="range" id="speedSlider" min="100" max="2000" value="800" step="100">
                         <span id="speedLabel">0.8s</span>
                     </div>
                 </div>
@@ -69,12 +69,51 @@
 
             <div class="main-content">
                 <div class="visualization">
-                    <canvas id="canvas" width="800" height="450"></canvas>
+                    <canvas id="canvas" width="1000" height="700"></canvas>
                     <div class="legend">
                         <div class="legend-item"><div class="legend-color" style="background: #6c757d;"></div><span>Unvisited</span></div>
                         <div class="legend-item"><div class="legend-color" style="background: #ffc107;"></div><span>Visiting</span></div>
                         <div class="legend-item"><div class="legend-color" style="background: #28a745;"></div><span>Processed</span></div>
                         <div class="legend-item"><div class="legend-color" style="background: #667eea;"></div><span>In Stack/Queue</span></div>
+                    </div>
+                </div>
+
+                <div class="pseudocode-container">
+                    <h3>📝 Pseudocode</h3>
+                    <div id="dfs-pseudo">
+                        <p data-line="1"><b>procedure</b> DFS_TopologicalSort(graph):</p>
+                        <p data-line="2" style="padding-left: 1em;">stack &larr; empty</p>
+                        <p data-line="3" style="padding-left: 1em;">visited &larr; empty set</p>
+                        <p data-line="4" style="padding-left: 1em;"><b>for each</b> node <b>in</b> graph:</p>
+                        <p data-line="5" style="padding-left: 2em;"><b>if</b> node is not visited:</p>
+                        <p data-line="6" style="padding-left: 3em;">DFS_Visit(node, visited, stack)</p>
+                        <p data-line="7" style="padding-left: 1em;"><b>return</b> reversed stack</p>
+                        <br>
+                        <p data-line="8"><b>procedure</b> DFS_Visit(node, visited, stack):</p>
+                        <p data-line="9" style="padding-left: 1em;">mark node as visited</p>
+                        <p data-line="10" style="padding-left: 1em;"><b>for each</b> neighbor <b>of</b> node:</p>
+                        <p data-line="11" style="padding-left: 2em;"><b>if</b> neighbor is not visited:</p>
+                        <p data-line="12" style="padding-left: 3em;">DFS_Visit(neighbor, visited, stack)</p>
+                        <p data-line="13" style="padding-left: 1em;">push node onto stack</p>
+                    </div>
+                    <div id="bfs-pseudo" style="display: none;">
+                        <p data-line="1"><b>procedure</b> Kahns_TopologicalSort(graph):</p>
+                        <p data-line="2" style="padding-left: 1em;">in_degree &larr; array initialized to 0</p>
+                        <p data-line="3" style="padding-left: 1em;"><b>for each</b> node <b>in</b> graph:</p>
+                        <p data-line="4" style="padding-left: 2em;"><b>for each</b> neighbor <b>of</b> node:</p>
+                        <p data-line="5" style="padding-left: 3em;">in_degree[neighbor]++</p>
+                        <p data-line="6" style="padding-left: 1em;">queue &larr; all nodes with in_degree 0</p>
+                        <p data-line="7" style="padding-left: 1em;">result &larr; empty list</p>
+                        <p data-line="8" style="padding-left: 1em;"><b>while</b> queue is not empty:</p>
+                        <p data-line="9" style="padding-left: 2em;">node &larr; queue.dequeue()</p>
+                        <p data-line="10" style="padding-left: 2em;">add node to result</p>
+                        <p data-line="11" style="padding-left: 2em;"><b>for each</b> neighbor <b>of</b> node:</p>
+                        <p data-line="12" style="padding-left: 3em;">in_degree[neighbor]--</p>
+                        <p data-line="13" style="padding-left: 3em;"><b>if</b> in_degree[neighbor] == 0:</p>
+                        <p data-line="14" style="padding-left: 4em;">queue.enqueue(neighbor)</p>
+                        <p data-line="15" style="padding-left: 1em;"><b>if</b> result has all nodes:</p>
+                        <p data-line="16" style="padding-left: 2em;"><b>return</b> result</p>
+                        <p data-line="17" style="padding-left: 1em;"><b>else</b>: return error (cycle detected)</p>
                     </div>
                 </div>
 
@@ -88,10 +127,33 @@
         </div>
 
         <!-- Theory View -->
-        <div id="theory-view" style="display: none;">
+        <div id="theory-view">
              <p class="subtitle">Understanding the concepts behind topological sorting algorithms</p>
 
             <div class="theory-content">
+                <section id="introduction">
+                    <h2>What is Topological Sorting?</h2>
+                    <div class="card">
+                        <p>
+                            Topological sorting provides a <strong>linear ordering</strong> of the nodes in a Directed Acyclic Graph (DAG). For every directed edge from node <code>u</code> to node <code>v</code>, node <code>u</code> must come before node <code>v</code> in the ordering. This is not a typical sorting algorithm that arranges items in numerical or alphabetical order; instead, it arranges nodes based on their dependencies.
+                        </p>
+                        <p>
+                            Think of it as creating a valid to-do list from a set of tasks where some tasks are prerequisites for others. For example, you must put on your socks before your shoes. Topological sorting gives you a valid sequence to complete all tasks.
+                        </p>
+                        <h3>What is a Directed Acyclic Graph (DAG)?</h3>
+                        <p>
+                            A topological sort can only be performed on a <strong>Directed Acyclic Graph (DAG)</strong>. A DAG is a type of graph that has two key properties:
+                        </p>
+                        <ul>
+                            <li><strong>Directed:</strong> All edges have a direction, representing a one-way relationship or dependency. For example, an edge from Task A to Task B means A must be completed before B can start.</li>
+                            <li><strong>Acyclic:</strong> The graph contains no cycles. This means you can never start at a node, follow a sequence of directed edges, and end up back at the same starting node. This property is crucial because a cycle would represent a paradox (e.g., Task A depends on B, and B depends on A), making a linear ordering impossible.</li>
+                        </ul>
+                        <p>
+                           It's important to note that a DAG can have multiple valid topological orderings. For instance, if two tasks have no dependency on each other, they can appear in any order relative to one another in the sorted list.
+                        </p>
+                    </div>
+                </section>
+                
                 <section id="kahns-algorithm">
                     <h2>Kahn's Algorithm (BFS Approach)</h2>
                     <div class="card">
@@ -201,6 +263,37 @@
                             Both algorithms have the same time complexity: <strong>O(V + E)</strong>, where <code>V</code> is the number of vertices and <code>E</code> is the number of edges.
                             This is because both methods must visit every vertex and every edge exactly once. The space complexity is also <strong>O(V)</strong> to store the in-degrees/visited set and the queue/stack.
                         </p>
+                    </div>
+                </section>
+                
+                <section id="applications">
+                    <h2>Real-Life Applications</h2>
+                    <div class="card">
+                        <p>Topological sorting is not just a theoretical concept; it's the backbone of many real-world systems that manage dependencies.</p>
+                        <ul>
+                            <li><strong>Task Scheduling:</strong> In project management, tasks often have dependencies. Topological sort provides a valid sequence to execute them, forming the basis for critical path analysis in PERT charts.</li>
+                            <li><strong>Course Prerequisites:</strong> Universities use topological sorting to schedule courses, ensuring that a student completes all prerequisites before enrolling in an advanced course.</li>
+                            <li><strong>Software Build Systems:</strong> Compilers and build tools like Make or Maven use topological sorting to determine the correct order to compile source files and link libraries based on their dependencies.</li>
+                            <li><strong>Dependency Resolution:</strong> Software package managers (like npm or apt) use it to figure out the correct order to install packages and their dependencies.</li>
+                            <li><strong>Data Processing & ETL Pipelines:</strong> In large-scale data processing, jobs often depend on the output of other jobs. DAGs are used to model these pipelines, and topological sort defines the execution order.</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <section id="advantages-disadvantages">
+                    <h2>Advantages & Disadvantages</h2>
+                    <div class="card">
+                        <h3>Advantages</h3>
+                        <ul>
+                            <li><strong>Simplifies Complex Dependencies:</strong> It provides a clear and linear sequence for executing tasks in systems with complex prerequisite chains.</li>
+                            <li><strong>Cycle Detection:</strong> The algorithms for topological sorting naturally detect cycles, which is critical for identifying impossible dependency loops in a schedule or system.</li>
+                            <li><strong>Efficiency:</strong> Both primary algorithms (Kahn's and DFS-based) are very efficient, running in linear time O(V + E).</li>
+                        </ul>
+                        <h3>Disadvantages</h3>
+                        <ul>
+                            <li><strong>Only for DAGs:</strong> Its primary limitation is that it only works on Directed Acyclic Graphs. It cannot be applied to graphs with cycles or undirected graphs.</li>
+                            <li><strong>Non-Unique Results:</strong> For many graphs, there can be multiple valid topological orders. This ambiguity can be an issue if a single, specific order is required.</li>
+                        </ul>
                     </div>
                 </section>
             </div>

@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 document.getElementById('speedSlider').addEventListener('input', (e) => {
-    animationSpeed = 2100 - parseInt(e.target.value); // Invert the range
+    animationSpeed = parseInt(e.target.value); // Corrected logic
     document.getElementById('speedLabel').textContent = (animationSpeed / 1000).toFixed(1) + 's';
 });
 
@@ -64,6 +64,8 @@ function setAlgorithm(algo) {
     algorithm = algo;
     document.getElementById('dfsBtn').classList.toggle('active', algo === 'dfs');
     document.getElementById('bfsBtn').classList.toggle('active', algo === 'bfs');
+    document.getElementById('dfs-pseudo').style.display = (algo === 'dfs') ? 'block' : 'none';
+    document.getElementById('bfs-pseudo').style.display = (algo === 'bfs') ? 'block' : 'none';
 }
 
 function setInputMode(mode) {
@@ -131,7 +133,7 @@ function generateDFSSteps(graph) {
     const nodeStates = {};
     nodes.forEach(node => nodeStates[node] = 'unvisited');
 
-    steps.push({ message: 'Starting DFS-based Topological Sort', states: { ...nodeStates }, stack: [] });
+    steps.push({ message: 'Starting DFS-based Topological Sort', states: { ...nodeStates }, stack: [], pseudoLine: 1 });
 
     function dfs(node, recStack, path) {
         if (recStack.has(node)) {
@@ -150,27 +152,32 @@ function generateDFSSteps(graph) {
 
         recStack.add(node); visited.add(node); path.push(node);
         nodeStates[node] = 'visiting';
-        steps.push({ message: `Visiting node ${node}`, states: { ...nodeStates }, stack: [...stack], activeNode: node });
+        steps.push({ message: `Visiting node ${node}`, states: { ...nodeStates }, stack: [...stack], activeNode: node, pseudoLine: 9 });
 
         for (let neighbor of graph[node]) {
-            steps.push({ message: `Exploring edge ${node} → ${neighbor}`, states: { ...nodeStates }, stack: [...stack], activeEdge: [node, neighbor] });
-            dfs(neighbor, recStack, path);
+            steps.push({ message: `Exploring edge ${node} → ${neighbor}`, states: { ...nodeStates }, stack: [...stack], activeEdge: [node, neighbor], pseudoLine: 10 });
+            if (!visited.has(neighbor)) {
+                 steps.push({ message: `${neighbor} is not visited, recursively call DFS`, states: { ...nodeStates }, stack: [...stack], pseudoLine: 12 });
+                dfs(neighbor, recStack, path);
+            }
         }
 
         recStack.delete(node); path.pop();
         nodeStates[node] = 'processed';
         stack.push(node);
-        steps.push({ message: `Finished processing node ${node}, adding to stack`, states: { ...nodeStates }, stack: [...stack] });
+        steps.push({ message: `Finished processing node ${node}, adding to stack`, states: { ...nodeStates }, stack: [...stack], pseudoLine: 13 });
     }
 
     try {
         for (let node of nodes) {
+             steps.push({ message: `Checking main loop for unvisited nodes. Current: ${node}`, states: { ...nodeStates }, stack: [...stack], pseudoLine: 4 });
             if (!visited.has(node)) {
+                 steps.push({ message: `Node ${node} is unvisited. Starting DFS from it.`, states: { ...nodeStates }, stack: [...stack], pseudoLine: 6 });
                 dfs(node, new Set(), []);
             }
         }
         const result = [...stack].reverse();
-        steps.push({ message: 'Reversing stack to get topological order', states: { ...nodeStates }, stack: [], result: result, final: true });
+        steps.push({ message: 'Reversing stack to get topological order', states: { ...nodeStates }, stack: [], result: result, final: true, pseudoLine: 7 });
     } catch (error) {
         console.log(error.message);
     }
@@ -189,7 +196,7 @@ function generateBFSSteps(graph) {
             inDegree[neighbor]++;
         }
     }
-    steps.push({ message: 'Starting BFS (Kahn\'s) - Calculated in-degrees', states: { ...nodeStates }, queue: [], result: [] });
+    steps.push({ message: 'Starting BFS (Kahn\'s) - Calculated in-degrees', states: { ...nodeStates }, queue: [], result: [], pseudoLine: 5 });
 
     const queue = [];
     for (let node in inDegree) {
@@ -198,32 +205,34 @@ function generateBFSSteps(graph) {
             nodeStates[node] = 'inStack';
         }
     }
-    steps.push({ message: `Added nodes with 0 in-degree: [${queue.join(', ')}]`, states: { ...nodeStates }, queue: [...queue], result: [] });
+    steps.push({ message: `Added nodes with 0 in-degree: [${queue.join(', ')}]`, states: { ...nodeStates }, queue: [...queue], result: [], pseudoLine: 6 });
 
     const result = [];
     while (queue.length > 0) {
+        steps.push({ message: 'Checking if queue is empty', states: { ...nodeStates }, queue: [...queue], result: [...result], pseudoLine: 8 });
         const node = queue.shift();
         nodeStates[node] = 'visiting';
-        steps.push({ message: `Processing ${node} from queue`, states: { ...nodeStates }, queue: [...queue], result: [...result], activeNode: node });
+        steps.push({ message: `Processing ${node} from queue`, states: { ...nodeStates }, queue: [...queue], result: [...result], activeNode: node, pseudoLine: 9 });
 
         result.push(node);
         nodeStates[node] = 'processed';
+        steps.push({ message: `Added ${node} to the final result list`, states: { ...nodeStates }, queue: [...queue], result: [...result], pseudoLine: 10 });
 
         for (let neighbor of graph[node]) {
             inDegree[neighbor]--;
-            steps.push({ message: `Decremented in-degree of ${neighbor} to ${inDegree[neighbor]}`, states: { ...nodeStates }, queue: [...queue], result: [...result], activeEdge: [node, neighbor] });
+            steps.push({ message: `Decremented in-degree of ${neighbor} to ${inDegree[neighbor]}`, states: { ...nodeStates }, queue: [...queue], result: [...result], activeEdge: [node, neighbor], pseudoLine: 12 });
             if (inDegree[neighbor] === 0) {
                 queue.push(neighbor);
                 nodeStates[neighbor] = 'inStack';
-                steps.push({ message: `Added ${neighbor} to queue`, states: { ...nodeStates }, queue: [...queue], result: [...result] });
+                steps.push({ message: `Added ${neighbor} to queue as its in-degree is 0`, states: { ...nodeStates }, queue: [...queue], result: [...result], pseudoLine: 14 });
             }
         }
     }
 
     if (result.length !== nodes.length) {
-        steps.push({ message: 'Error: Cycle detected! Not all nodes were visited.', states: { ...nodeStates }, queue: [], result, final: true, error: true });
+        steps.push({ message: 'Error: Cycle detected! Not all nodes were visited.', states: { ...nodeStates }, queue: [], result, final: true, error: true, pseudoLine: 17 });
     } else {
-        steps.push({ message: 'Completed! All nodes processed.', states: { ...nodeStates }, queue: [], result: result, final: true });
+        steps.push({ message: 'Completed! All nodes processed.', states: { ...nodeStates }, queue: [], result: result, final: true, pseudoLine: 16 });
     }
     return steps;
 }
@@ -234,7 +243,7 @@ function calculateNodePositions(nodes) {
     const numNodes = nodes.length;
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
-    const radius = Math.min(canvas.width, canvas.height) / 2 - NODE_RADIUS * 3;
+    const radius = Math.min(canvas.width, canvas.height) / 2 - NODE_RADIUS * 1.5;
     const sortedNodes = [...nodes].sort();
 
     sortedNodes.forEach((node, idx) => {
@@ -332,6 +341,22 @@ function updateLog() {
     });
 }
 
+function updatePseudocodeHighlight(line) {
+    const pseudoContainerId = algorithm === 'dfs' ? 'dfs-pseudo' : 'bfs-pseudo';
+    const container = document.getElementById(pseudoContainerId);
+    if (!container) return;
+
+    container.querySelectorAll('p.highlight').forEach(el => el.classList.remove('highlight'));
+
+    if (line) {
+        const lineEl = container.querySelector(`p[data-line="${line}"]`);
+        if (lineEl) {
+            lineEl.classList.add('highlight');
+            lineEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+}
+
 function startVisualization() {
     const input = document.getElementById('graphInput').value;
     const resultDiv = document.getElementById('result');
@@ -344,6 +369,7 @@ function startVisualization() {
 
         drawGraph(animationSteps[0]);
         updateLog();
+        updatePseudocodeHighlight(animationSteps[0].pseudoLine);
 
         document.getElementById('startBtn').disabled = true;
         document.getElementById('pauseBtn').disabled = false;
@@ -361,6 +387,7 @@ function nextStep() {
         currentStep++;
         drawGraph(animationSteps[currentStep]);
         updateLog();
+        updatePseudocodeHighlight(animationSteps[currentStep].pseudoLine);
 
         if (animationSteps[currentStep].final) {
             showFinalResult();
@@ -410,10 +437,12 @@ function resetVisualization() {
     if (animationSteps.length > 0) {
         drawGraph(animationSteps[0]);
         updateLog();
+        updatePseudocodeHighlight(animationSteps[0].pseudoLine);
     } else {
         try {
             graph = parseGraph(document.getElementById('graphInput').value);
             drawGraph({ states: {} });
+            updatePseudocodeHighlight(null);
         } catch (e) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
@@ -438,6 +467,7 @@ function clearGraph() {
     document.getElementById('pauseBtn').disabled = true;
     document.getElementById('pauseBtn').textContent = 'Pause';
     document.getElementById('nextBtn').disabled = true;
+    updatePseudocodeHighlight(null);
 }
 
 function generateRandomGraph() {
